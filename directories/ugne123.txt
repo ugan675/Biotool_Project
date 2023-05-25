@@ -1,0 +1,7 @@
+/django/documents/ugne123
+/django/documents/ugne123/dir1
+/django/documents/ugne123/dir2
+/django/documents/ugne123/dir3
+/django/documents/ugne123/dir12
+/django/documents/ugne123/dir13
+/django/documents/ugne123/dir1/dirrr

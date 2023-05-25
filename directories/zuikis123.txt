@@ -1,0 +1,3 @@
+/django/documents/zuikis123
+/django/documents/zuikis123/dir
+/django/documents/zuikis123/dir3

@@ -1,0 +1,9 @@
+Django==2.2.12
+Pillow==9.3.0
+pytz==2022.6
+sqlparse==0.4.3
+xterm==0.7.3
+psycopg2-binary>=2.8
+fs==2.4.16
+scandir==1.10.0
+pandas==1.5.1

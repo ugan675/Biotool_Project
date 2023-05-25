@@ -1,0 +1,3 @@
+/django/documents/django123
+/django/documents/django123/dir1
+/django/documents/django123/dir22

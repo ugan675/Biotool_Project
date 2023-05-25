@@ -1,0 +1,5 @@
+/django/documents/useriux123
+/django/documents/useriux123/seq
+/django/documents/useriux123/files
+/django/documents/useriux123/hdf@
+/django/documents/useriux123/fd@

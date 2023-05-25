@@ -1,0 +1,557 @@
+{% extends 'main.html' %}
+{% block content %}
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static '../static/base/css/home.css' %}">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<div id="home-container">
+
+        <div id="heading">
+            <div id="logo">{% load static %} <img class="logo" src = "{% static 'base/images/logo.png' %}"></div>
+            {% if user.is_authenticated %}
+                <div id="user"><p>User: {{ user.get_username }} </p></div>
+            {% endif %}
+            <div id="help"><a href="#" class="heading">Help</a></div>
+            {% if user.is_authenticated %}
+            <div id="login"><a href="{% url 'logout' %}" class="heading">Log Out</a></div>
+            {% else %}
+            <div id="login"><a href="{% url 'login' %}" class="heading">Login/Register</a></div>
+            {% endif %}
+        </div>
+
+        <div id="main">
+            <div id="left">
+                <div class="tools-search">
+                    <h1> </h1>
+                    <div class="wrapper">
+                        {% load static %} <img class="search-icon" src="{% static 'base/images/search.svg' %}"/>
+                        <form method="GET" action="">
+                            <input class="search" id="search-field-tools" placeholder="Search tools..." type="text" >
+                        </form>
+                        {% load static %} <img onclick="clearSearchTools()" class="clear-icon" src="{% static 'base/images/close.svg' %}" />
+                    </div>  
+                </div>
+
+                <div class="tools">
+                    {% if user.is_authenticated %}
+                    <button href="" id="upload" onclick="uploadClicked(this.id)" class="tool_ref">upload</button>
+                    {% for cmd_name in command_names %}
+                        <button href="" id={{cmd_name}} onclick="addcmd(this.id)" class="tool_ref">{{cmd_name}}</button>
+                    {% endfor %}
+                    {% else %}
+                    {% for cmd_name in command_names %}
+                        <button href="" class="tool_ref">{{cmd_name}}</button>
+                    {% endfor %}   
+                    {% endif %}
+                </div>
+            </div>
+
+            
+            <div id="center">
+                <div class="terminal">
+                    <div id="terminal"></div>
+                    <script type="text/javascript"> 
+                    var URL = "{% url 'home' %}";
+                    var username = "{{user.get_username}}";
+                    var CSRF_TOKEN = '{{ csrf_token }}';
+                    var commands = {{command_names|safe}};
+                    var pathsFromNonRoot;
+                    const list = ['Kelly', 'Creed', 'Stanley'];
+
+                    let options = {
+                    shouldSort: true,
+                    threshold: 0.3,
+                    location: 0,
+                    distance: 100,
+                    maxPatternLength: 32,
+                    minMatchCharLength: 1,
+                    };
+
+                    let optionsForFiles = {
+                    shouldSort: true,
+                    threshold: 0,
+                    location: 0,
+                    distance: 100,
+                    maxPatternLength: 40,
+                    minMatchCharLength: 1,
+                    };
+
+
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    "{% load custom_tags %}";
+                    input.addEventListener(
+                        'change',
+                        uploadFile,
+                        false
+                    );
+
+                    var term = new Terminal({
+                        fontSize: 18,
+                        rows: 30,
+                        //cols: 100, //any value
+                    });
+                    var shellprompt = username+':~$ ';
+                    var velcome_line = username + ", welcome to BioTool!";
+                    var cmd = "";
+                    term.attachCustomKeyEventHandler((arg) => {
+                        if (arg.ctrlKey && arg.code === "KeyV" && arg.type === "keydown") {
+                            navigator.clipboard.readText()
+                            .then(text => {
+                                term.write(text);
+                            })
+                        };
+                        return true;
+                    });
+
+                    function uploadFile() {
+                        let idd = JSON.stringify({id: "upload"});
+                        let formData = new FormData();
+                        formData.append('file', input.files[0]);
+                        formData.append('id', idd);
+
+                        fetch('/', {
+                            body: formData,
+                            method: "POST",
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                            },
+                        })
+                        .then((res) => res.json())
+                        .then(function(data){ 
+                            if(data.file_name){
+                                var msg = 'File ' + data.file_name + ' was uploaded';
+                                addFile(data.file_name);
+                            }
+                            else{
+                                var msg = data.error;
+                            }
+                            outputResults(msg);
+                            if (data.command_history.length > 0) {
+                                clearHistory();
+                                data.command_history.forEach((item) => {
+                                    addHistory(item.command);
+                                });
+                            }
+                        })
+                    }
+
+                    var decodeEntities = (function() {
+                        var element = document.createElement('div');
+                        term.newLine = function() {
+                            term.write('\r\n');
+                        };
+                        term.open(document.getElementById('terminal'), false);
+                        term.prompt = function() {
+                            term.write('\r\n' + shellprompt);
+                        };
+
+                        if (username) {
+                            term.writeln(velcome_line);
+                            term.writeln('Type or enter commands from tools tab on the right.');
+                            term.writeln('For the help press help on the top left corner.');
+                            term.writeln('');
+                        }
+                        else{
+                            term.writeln('Welcome to BioTool!');
+                            term.writeln('Register or login to start using BioTool.');
+                        }
+                        term.prompt();
+                        term.setOption('cursorBlink', true);
+
+
+
+                        function decodeHTMLEntities(str) {
+                            if (str && typeof str === 'string') {
+                                // strip script/html tags
+                                str = str.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '');
+                                str = str.replace(/<\/?\w(?:[^"'>]|"[^"]*"|'[^']*')*>/gmi, '');
+                                element.innerHTML = str;
+                                str = element.textContent;
+                                element.textContent = '';
+                            }
+
+                            return str;
+                        }
+
+                        return decodeHTMLEntities;
+                    })();
+
+                    function outputResults(str) {
+                        if(str){
+                            str = str.replace(/\n/g, '\r\n');
+                            str = str.replace(/\n$/, '');
+                            term.write(str);
+                            term.prompt();
+                        } else {
+                            term.write(shellprompt);
+                        }
+                    }
+
+                    function outputHistory(str) {
+                        if(str){
+                            cmd = '';
+                            term.write('\x1b[2K\r');
+                            term.write(shellprompt);
+                            term.write(str);
+                            cmd += str;
+                        }
+                    }
+
+                    function changeDir(dir) {
+                        shellprompt = username + ":~" + dir + '$ ';
+                    }
+
+                    function updateCommand() {
+                        $.ajax({
+                            url: URL,
+                            type: 'post',
+                            data: {
+                                'cmd': cmd
+                            },
+                            success: function(response) {
+                                changeDir(response.path);
+                                outputResults(response.globalresult);
+                                if (response.command_history.length > 0) {
+                                    clearHistory();
+                                    response.command_history.forEach((item) => {
+                                        addHistory(item.command);
+                                    });
+                                }
+                                clearFiles();
+                                if (response.files.length > 0) {
+                                    response.files.forEach((item) => {
+                                        addFile(item);
+                                    });
+                                }
+                            },cache: false
+                        }).fail(function (){
+                            alert('error');
+                        })
+                    }
+
+                    function getLastCommandValue(searchCommand){
+                        lastCmd =  searchCommand.split(" ").pop();
+                        if (lastCmd.includes("/")){
+                            splitPath = lastCmd.split("/");
+                            return splitPath.pop();
+                        }
+                        return lastCmd;
+                    }
+
+                    function getSearchValue(searchCommand){
+                        lastCmd =  searchCommand.split(" ").pop();
+                        if (lastCmd.includes("/")){
+                            splitPath = lastCmd.split("/");
+                            searchValue = splitPath.pop();
+                            searchValue = searchValue.substring(0, searchValue.length - 1);
+                            return searchValue;
+                        }
+                        return lastCmd.replace(/.$/,'');
+                    }
+
+                    function checkIfAfterPipe(searchCommand){
+                        splitCommand = searchCommand.split(" ");
+                        if (splitCommand.length > 1){
+                            if (splitCommand[splitCommand.length - 2] == '|'){
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    function lastCommand(searchCommand){
+                        splitCommand = searchCommand.split(" ");
+                        return splitCommand.pop();
+                    }
+
+                    function getCurrentDir(searchFile){
+                        splitPath = searchFile.split("/");
+                        splitPath.pop();
+                        return splitPath.join('/');
+                    }
+
+                    function getAutocompleteOptions(searchCommand){
+                        splitCommand = searchCommand.split(" ");
+                        if (splitCommand.length > 1){
+                            if (splitCommand[splitCommand.length - 2] == '|'){
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+
+                    function autocompleteCommand(searchValue){
+                        var lengthToDelete = searchValue.length;
+                        var fuse = new Fuse(commands, optionsForFiles);
+                        var searchResults = fuse.search(searchValue);
+                        if (searchResults.length == 1){
+                            topResult = searchResults[0].item;
+                            deleteCharacter(lengthToDelete);
+                            term.write(topResult);
+                            cmd += topResult;
+                        }
+                    }
+
+                    function autocompleteFile(searchValue, searchList){
+                        var lengthToDelete = searchValue.length;
+                        var fuse = new Fuse(searchList, optionsForFiles);
+                        var searchResults = fuse.search(searchValue);
+                        if (searchResults.length == 1){
+                            topResult = getLastCommandValue(searchResults[0].item);
+                            deleteCharacter(lengthToDelete);
+                            term.write(topResult);
+                            cmd += topResult;
+                        }
+                    }
+
+
+                    function autocomplete(){
+                        var autocompleteFromCommands = getAutocompleteOptions(cmd);
+                        var searchValue = getLastCommandValue(cmd);
+                        var lastCmd = lastCommand(cmd);
+                        if (autocompleteFromCommands){
+                            autocompleteCommand(searchValue);
+                        } else {
+                            if (lastCmd.includes("/")){
+                                currentDirectory = getCurrentDir(lastCmd);
+                                autocompleFromDirectory(currentDirectory, searchValue);
+                            } else {
+                                currentDirectory = getCurrentDir(searchValue);
+                                autocompleFromDirectory(currentDirectory, searchValue);
+                            }
+                        }
+                    }
+
+                    function autocompleteCommandWithFullValues(searchValue, fullCommand){
+                        var lengthToDelete = searchValue.length;
+                        var fuse = new Fuse(commands, optionsForFiles);
+                        var searchResults = fuse.search(searchValue);
+                        allResult = searchResults.map(result => result.item)
+                        term.newLine();
+                        for (let result of allResult){
+                            term.write(result);
+                            term.newLine();
+                        }
+                        term.write(shellprompt);
+                        term.write(fullCommand);
+                    }
+
+                    function autocompleteFileWithFullValues(searchValue, searchList, fullCommand){
+                        var lengthToDelete = searchValue.length;
+                        var fuse = new Fuse(searchList, optionsForFiles);
+                        var searchResults = fuse.search(searchValue);
+                        allResult = searchResults.map(result => result.item)
+                        term.newLine();
+                        for (let result of allResult){
+                            term.write(result);
+                            term.newLine();
+                        }
+                        term.write(shellprompt);
+                        term.write(fullCommand);
+                        //cmd += fullCommand;
+                        //deleteCharacter(lengthToDelete);
+                        //alert(allResult);
+                        ////cmd += topResult;
+                    }
+
+                    function autocompleteWithFullValues(){
+                        var autocompleteFromCommands = getAutocompleteOptions(cmd);
+                        var searchValue = getSearchValue(cmd);
+                        var lastCmd = lastCommand(cmd);
+                        //alert(searchValue)
+                        if (autocompleteFromCommands){
+                            autocompleteCommandWithFullValues(searchValue, cmd);
+                        } else {
+                            if (lastCmd.includes("/")){
+                                currentDirectory = getCurrentDir(lastCmd);
+                                autocompleFromDirectoryWithFullValues(currentDirectory, searchValue, cmd);
+                            } else {
+                                //var searchList = {{user_files_and_dirs|safe}};
+                                currentDirectory = getCurrentDir(searchValue);
+                                autocompleFromDirectoryWithFullValues(currentDirectory, searchValue, cmd);
+                            }
+                        }
+                    }
+
+                    function getHistoryCommand(newKeyCode) {
+                        $.ajax({
+                            url: URL,
+                            type: 'post',
+                            data: {
+                                'cmd': newKeyCode
+                            },
+                            success: function(response) {
+                                outputHistory(response.command_from_history);
+                            },cache: false
+                        }).fail(function (){
+                            alert('error');
+                        })
+                    }
+
+                    function autocompleFromDirectory(currentDir, searchValue) {
+                        $.ajax({
+                            url: URL,
+                            type: 'post',
+                            data: {
+                                'cmd': 'path',
+                                'path': currentDir
+                            },
+                            success: function(response) {
+                                searchList = response.Possible_path;
+                                autocompleteFile(searchValue, searchList);
+                            },cache: false
+                        }).fail(function (){
+                            alert('error');
+                        })
+                    }
+
+                    function autocompleFromDirectoryWithFullValues(currentDir, searchValue, fullCommand) {
+                        $.ajax({
+                            url: URL,
+                            type: 'post',
+                            data: {
+                                'cmd': 'path',
+                                'path': currentDir
+                            },
+                            success: function(response) {
+                                searchList = response.Possible_path;
+                                autocompleteFileWithFullValues(searchValue, searchList, fullCommand);
+                            },cache: false
+                        }).fail(function (){
+                            alert('error');
+                        })
+                    }
+
+                    function addcmd(clicked_id) {
+                        if (username) {
+                            term.write(clicked_id);
+                            cmd += clicked_id;
+                        }
+                    }
+
+                    function uploadClicked(clicked_id){
+                        input.click();
+                    }
+
+                    function deleteCharacter(numberOfCharactersToDelete){
+                        for (let NumToDelete = 0; NumToDelete < numberOfCharactersToDelete; NumToDelete++){
+                            term.write('\b \b');
+                            cmd = cmd.slice(0, -1);
+                        }
+                    }
+
+                    if (username) {
+                        term.on('key', function(key, ev) {
+                            var printable = (
+                                !ev.altKey && !ev.altGraphKey && !ev.ctrlKey && !ev.metaKey && key.charCodeAt(0) > 31
+                            );
+                            if (ev.keyCode == 13) {
+                                if (cmd === 'clear') {
+                                    term.clear();
+                                    term.prompt();
+                                    cmd = '';
+                                } else if (cmd.charAt(cmd.length - 1) == '?') {
+                                    autocompleteWithFullValues();
+                                    //updateCommand();
+                                    //cmd = '';
+                                    //term.newLine();
+                                } else if (cmd !== 'upload') {
+                                    updateCommand();
+                                    cmd = '';
+                                    term.newLine();
+                                    cmd = '';
+                                }
+                            } else if (ev.keyCode == 8) {
+                                if (cmd) {
+                                    deleteCharacter(1);
+                                }
+                            } else if (ev.keyCode == 9) {
+                                if (cmd) {
+                                    autocomplete();
+                                }
+                            } else if (ev.keyCode == 38 || ev.keyCode == 40) {
+                                getHistoryCommand(ev.keyCode);
+                            } else if (printable){
+                                cmd += key;
+                                term.write(key);
+                            }
+                        
+                        });
+                    }
+
+                    term.on('paste', function(data, ev) {
+                        term.write(data);
+                        cmd += data;
+                    });
+                    </script>
+                </div>
+            </div>
+
+            <div id="right">
+                <div class="history">
+                    <h1>History</h1>
+                    <div class="info">
+                        {% if user.is_authenticated %}
+                        {% for i in cmd_history %}
+                            <p class="files_displayed">{{i.command}}</p>
+                        {% endfor %}
+                        {% else %}
+                            <p>Your history is empty. <a href="{% url 'login' %}" class="heading">Login or register</a> to upload your <br>data and to start using BioTool.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="data-search">
+                    <h1>My data</h1>
+                    <div class="wrapper2">
+                        {% load static %} <img class="search-icon2" src="{% static 'base/images/search.svg' %}"/>
+                        <input class="search2" name="file_search" id="search-field" placeholder="Search data..." type="text" >
+                        {% load static %} <img onclick= "clearSearch()" class="clear-icon-data2" src="{% static 'base/images/close.svg' %}" />
+                    </div> 
+                </div>
+
+                <div class="data">
+                    {% if user.is_authenticated %}
+                    <input type="button" class="btn btn-primary" name="upload_files" value=" Upload " onclick="input.click()"/>
+                    {% else %}
+                    <input type="button" class="btn btn-primary" name="upload_files" value=" Upload "/>
+                    {% endif %}
+                    {% load custom_tags %}
+                    <div class="files">
+                        {% if user.is_authenticated %}
+                        {% for i in files %}
+                            <p class="files_displayed">{{i}}</p>
+                        {% endfor %}
+                        {% else %}
+                        <p>You have no files uploaded!</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% load static %}
+                <script type="text/javascript" src = "{% static 'base/js/search.js' %}"> </script>
+                {% load static %}
+                <script type="text/javascript"> 
+                    const infoArea = document.querySelector(".info");
+                    const filesArea = document.querySelector(".files");
+                    function clearHistory(){
+                        infoArea.innerHTML = "";
+                    }
+                    function addHistory(cmdHistory){
+                        infoArea.innerHTML += "<p class='files_displayed'>" + cmdHistory + "</p>";
+                    }
+                    function clearFiles(){
+                        filesArea.innerHTML = "";
+                    }
+                    function addFile(newFile){
+                        filesArea.innerHTML += "<p class='files_displayed'>" + newFile  + "</p>";
+                    }
+                </script>
+            </div>
+        </div>
+</div>
+
+
+{% endblock content %}

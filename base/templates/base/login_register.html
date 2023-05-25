@@ -1,0 +1,62 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static '../static/base/css/login_register.css' %}">
+
+{% if page == 'login' %}
+{% load static %} <a href="{% url 'home' %}"><img class="close_login" src = "{% static 'base/images/close.svg' %}"></a>
+<div class="login">
+
+    <div class="logo_div">
+        {% load static %} <img class="logo" src = "{% static 'base/images/logo.png' %}">
+    </div>
+
+    <form method="POST" action="">
+        {% csrf_token %}
+
+        <div class="username">
+            <label>Username:</label>
+            <input type="text" name="username" placeholder="Enter Username"/>
+        </div>
+
+        <div class="password">
+            <label>Password:</label>
+            <input type="password" name="password" placeholder="Enter Password"/>
+        </div>
+
+        {% include 'base/messages.html' %}
+        {% block message_content %} {% endblock message_content %}
+
+        <div class="submit_button"><button type="submit"> Login </button></div>
+    </form>
+
+    <div class="register_message"><p>Have not signed up yet?</p></div>
+
+    <div class="register_reference"><a href="{% url 'register' %}">Register</a></div>
+
+</div>
+
+{% else %}
+{% load static %} <a href="{% url 'home' %}"><img class="close_register" src = "{% static 'base/images/close.svg' %}"></a>
+
+<div class="register">
+
+    <div class="logo_div">
+        {% load static %} <img class="logo" src = "{% static 'base/images/logo.png' %}">
+    </div>
+
+    <form method="POST" action="">
+        {% csrf_token %}
+        {{form.as_p}}
+        <div class="submit_button"><button type="submit"> Register </button></div>
+    </form>
+
+    <p>Alredy signed up?</p>
+    <a href="{% url 'login' %}">Login</a>
+</div>
+{% endif %}
+
+{% endblock content %}

@@ -1,0 +1,4 @@
+/django/documents/petriuks123
+/django/documents/petriuks123/dir1
+/django/documents/petriuks123/dir2
+/django/documents/petriuks123/dir2/dir3

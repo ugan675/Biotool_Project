@@ -1,0 +1,2 @@
+/django/documents/ugne654
+/django/documents/ugne654/dir2

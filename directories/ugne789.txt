@@ -1,0 +1,2 @@
+/django/documents/ugne789
+/django/documents/ugne789/direktorija

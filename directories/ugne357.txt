@@ -1,0 +1,3 @@
+/django/documents/ugne357
+/django/documents/ugne357/direktorija
+/django/documents/ugne357/direktorija2

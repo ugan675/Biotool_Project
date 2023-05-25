@@ -1,0 +1,10 @@
+/django/documents/kazkas158
+/django/documents/kazkas158/dir3
+/django/documents/kazkas158/dir2
+/django/documents/kazkas158/ls
+/django/documents/kazkas158/makeblastdb
+/django/documents/kazkas158/dir33
+/django/documents/kazkas158/dir3/dir33
+/django/documents/kazkas158/dir333
+/django/documents/kazkas158/dir3/dir33/dir333
+/django/documents/kazkas158/dir3/dir34
